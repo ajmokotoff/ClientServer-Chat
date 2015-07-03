@@ -1,7 +1,5 @@
 from Tkinter import *
-import time
 import threading
-import random
 import Queue
 from Client import ChatClient
 
@@ -13,32 +11,32 @@ def send(message, instance):
     instance.queue.put(msg)
 
 def exit_chat():
-    client.endApplication()
     ChatClient.exit()
+    client.endApplication()
     sys.exit()
 
 
 class GuiPart:
     def __init__(self, master, queue, endCommand):
         self.queue = queue
-        self.bottom_frame = Frame(master)
-        self.bottom_frame.pack(side=BOTTOM)
+        self.bottom_frame = Frame(master, width=80, bg='#c9daf8')
+        self.bottom_frame.pack(side=BOTTOM, fill="both", expand=True)
 
         self.member_frame = Frame(master)
         self.member_frame.pack(side=LEFT)
 
-        self.member_list = Text(self.member_frame)
+        self.member_list = Text(self.member_frame, width=30, height=30, bg='#d9ead3', fg='#999999')
         self.member_list.configure(state="disabled")
         self.member_list.pack()
 
         # Set up the GUI
         self.quit_button = Button(self.bottom_frame, text='Quit', command=endCommand)
-        self.quit_button.pack(side=LEFT)
+        self.quit_button.pack(side=LEFT, anchor='w')
 
         self.scrollbar = Scrollbar(master)
         self.scrollbar.pack(side=RIGHT, fill=Y)
 
-        self.log = Text(master, width=50, height=30, takefocus=0)
+        self.log = Text(master, width=50, height=30, takefocus=0, bg='#fff2cc', fg='#999999')
         self.log.configure(state="disabled")
         self.log.pack()
 
@@ -46,12 +44,12 @@ class GuiPart:
         self.log.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.log.yview)
 
-        self.text_input = Entry(master, width=45)
+        self.text_input = Entry(self.bottom_frame, width=35)
         self.text_input.bind("<Return>",(lambda event: send(self.text_input.get(), self)))
-        self.text_input.pack(side=BOTTOM)
+        self.text_input.pack(side=BOTTOM, anchor=CENTER)
 
         self.send_button = Button(self.bottom_frame, text="Send Message")
-        self.send_button.pack(side=RIGHT)
+        self.send_button.pack(side=RIGHT, anchor='se', fill=Y)
 
     def processIncoming(self):
         """
@@ -139,11 +137,12 @@ class ThreadedClient:
     def endApplication(self):
         self.running = 0
         self.thread1.join()
-        sys.exit()
+        self.thread1 = None
 
-rand = random.Random()
+
 root = Tk()
 root.wm_title("Chat Room")
-
+root.configure(bg='#999999')
+#root.update()
 client = ThreadedClient(root)
 root.mainloop()

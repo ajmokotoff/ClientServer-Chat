@@ -10,7 +10,6 @@ RECV_BUFFER = 4096
 PORT = 9009
 
 
-
 def chat_server():
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -36,15 +35,16 @@ def chat_server():
                 sockfd, addr = server_socket.accept()
                 SOCKET_LIST.append(sockfd)
                 print "Client (%s, %s) connected" % addr
-                broadcast(server_socket, sockfd, "[%s:%s] entered our chatting room\n" % addr)
-                for name in MEMBERS:
-                    if name.lower() != message[0].lower():
-                        memberList += name + "\n"
-                    MEMBERS[message[0]].send("query"+memberList)
-                    memberList = ""
+
+                broadcast(server_socket, sockfd, "[%s:%s] is attempting to enter our chatting room\n" % addr)
              
             # a message from a client, not a new connection
             else:
+                for name in MEMBERS:
+                    memberList += name + "\n"
+                broadcast(server_socket, sock, "query"+memberList)
+                memberList = ""
+
                 # process data recieved from client, 
                 try:
                     # receiving data from the socket.
@@ -54,15 +54,23 @@ def chat_server():
                         # broadcast(server_socket, sock,
                         #  "\r" + '[' + str(sock.getpeername()) + '] ' + data)
                         message = data.split(": ")
-                        print message
                         nick = message[0]
                         msg = message[1]
 
                         if nick not in MEMBERS:
                             MEMBERS[nick] = sock
-                            print '%s has joined' % nick
+                            for name in MEMBERS:
+                                memberList += name + "\n"
+                            #MEMBERS[message[0]].send("query"+memberList)
+                            broadcast(server_socket, sock, "query"+memberList)
+                            memberList = ""
 
-                        print msg
+                        else:
+                            if msg == "is trying to connect.\n":
+                                sock.send("Sorry, that name has been taken! You have been removed!\n")
+                                broadcast(server_socket, sockfd, "[%s:%s] has been removed from the chat!\n" % addr)
+                                SOCKET_LIST.remove(sockfd)
+                                sockfd.close()
 
                         m = re.match('\/([A-Za-z0-9]+) (.+)', msg)
 
@@ -82,15 +90,15 @@ def chat_server():
                             pass
 
                         elif msg[:len(msg)-1] == "queryusers":
-                            print('it worked...')
                             for name in MEMBERS:
-                                if name.lower() != message[0].lower():
-                                    memberList += name + "\n"
-                            MEMBERS[message[0]].send("query"+memberList)
+                                memberList += name + "\n"
+                            #MEMBERS[message[0]].send("query"+memberList)
+                            broadcast(server_socket, sock, "query"+memberList)
                             memberList = ""
 
                         else:
-                            broadcast(server_socket, sock, data)
+                            if msg != "is trying to connect.\n":
+                                broadcast(server_socket, sock, data)
                     else:
                         # remove the socket that's broken
                         if sock in SOCKET_LIST:
@@ -99,17 +107,18 @@ def chat_server():
                         # at this stage, no data means probably the connection has been broken
                         broadcast(server_socket, sock, "Client (%s, %s) is offline\n" % addr)
                         for name in MEMBERS:
-                            if name.lower() != message[0].lower():
-                                memberList += name + "\n"
-                            MEMBERS[message[0]].send("query"+memberList)
-                            memberList = ""
+                            memberList += name + "\n"
+                        #MEMBERS[message[0]].send("query"+memberList)
+                        broadcast(server_socket, sock, "query"+memberList)
+                        memberList = ""
 
                 # exception
+
                 except Exception as e:
-                    print "here?"
                     print e
                     broadcast(server_socket, sock, "Client (%s, %s) is offline\n" % addr)
                     continue
+
 
     server_socket.close()
 
